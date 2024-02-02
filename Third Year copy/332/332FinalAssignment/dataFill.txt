@@ -1,0 +1,172 @@
+drop database if exists restaurantDB;
+create database restaurantDB;
+
+create table restaurant(
+  name varchar(25) primary key,
+  url varchar(25),
+  city varchar(25),
+  street varchar(25),
+  pCode varchar(25)
+);
+
+create table employee(
+  id integer primary key,
+  email varchar(50),
+  name varchar(25),
+  resturantName varchar(25),
+  foreign key (resturantName) references restaurant(name) on delete cascade
+);
+
+create table management(
+  id integer primary key,
+  foreign key (id) references employee(id) on delete cascade
+);
+
+create table tableServer(
+  id integer primary key,
+  foreign key (id) references employee(id) on delete cascade
+);
+
+create table chef(
+  id integer primary key,
+  foreign key (id) references employee(id) on delete cascade
+);
+
+create table credential(
+  credential varchar(50) not null,
+  chefID integer,
+  primary key(chefID, credential),
+  foreign key(chefID) references chef(id) on delete cascade
+);
+
+create table delivery(
+  id integer primary key,
+  foreign key (id) references employee(id) on delete cascade
+);
+
+create table customer(
+  firstName varchar(25),
+  lastName varchar(25),
+  credit decimal(10,2),
+  phoneNum varchar(25),
+  city varchar(25),
+  street varchar(25),
+  pCode varchar(25),
+  email varchar(50) primary key not null,
+  employeeID integer,
+  foreign key(employeeID) references employee(id) on delete cascade
+);
+
+create table employeeSchedule(
+  weekday varchar(25),
+  start_time time,
+  end_time time,
+  employeeID integer not null,
+  primary key(weekday, employeeID),
+  foreign key(employeeID) references employee(id) on delete cascade
+);
+
+create table foodItem (
+  restaurantname varchar(40),
+  name varchar(25) not null,
+  primary key(name,restaurantname),
+  price decimal(8, 2),
+  foreign key (restaurantname) references restaurant(name) on delete cascade
+);
+
+create table payment(
+  amount decimal(8,2),
+  payDate timestamp not null,
+  emailKey varchar(25) not null,
+  primary key(payDate, emailKey),
+  foreign key (emailKey) references customer (email)
+);
+
+create table orderPlaced(
+  id integer primary key,
+  price varchar(25),
+  tip decimal (10,2),
+  timePlaced date,
+  timeDelivered date,
+  deliverer integer,
+  emailKey varchar(25) not null,
+  restaurantName varchar (25) not null,
+  items varchar(25) not null,
+  foreign key (deliverer) references delivery(id),
+  foreign key (emailKey) references customer(email),
+  foreign key (restaurantName) references restaurant(name),
+  foreign key (items) references foodItem(name)
+);
+
+
+INSERT INTO restaurant(name, url, city, street, pCode) VALUES
+  ('The Spicy Palace', 'www.spicypalace.com', 'Toronto', '123 Main St', 'M5R 2M6'),
+  ('The Sizzling Kitchen', 'www.sizzlingkitchen.com', 'Montreal', '456 Queen St', 'H2T 3T3'),
+  ('The Tasty House', 'www.tastyhouse.com', 'Vancouver', '789 Hastings St', 'V6B 1N2'),
+  ('The Flavorful Bistro', 'www.flavorfulbistro.com', 'Ottawa', '111 Bank St', 'K2P 2N3'),
+  ('The Delicious Diner', 'www.deliciousdiner.com', 'Calgary', '222 8th Ave', 'T2P 2M2'),
+  ('The Savory Spot', 'www.savoryspot.com', 'Edmonton', '333 Jasper Ave', 'T5J 2N2');
+
+
+INSERT INTO employee(id, email, name, resturantName) VALUES
+  (1, 'jan.doe@restaurant.com', 'Jan Doe', 'The Spicy Palace'),
+  (2, 'john.smith@restaurant.com', 'John Smith', 'The Sizzling Kitchen'),
+  (3, 'mike.smith@restaurant.com', 'Mike Smith', 'The Tasty House'),
+  (4, 'jerry.jones@restaurant.com', 'Jerry Jones', 'The Flavorful Bistro'),
+  (5, 'e.lee@restaurant.com', 'Eric Lee', 'The Delicious Diner'),
+  (6, 'jamie.johnson@restaurant.com', 'Jamie Johnson', 'The Savory Spot');
+
+INSERT INTO management(id) VALUES (1),(2), (3), (5), (4), (6);
+INSERT INTO tableServer(id) VALUES (1),(2), (3), (5), (4), (6);
+INSERT INTO chef(id) VALUES (1),(2), (3), (5), (4), (6);
+INSERT INTO delivery(id) VALUES (1),(2), (3), (5), (4), (6);
+
+INSERT INTO credential(credential, chefID) VALUES
+  ('Certified Master Chef', 3),
+  ('Diploma in Culinary Arts', 3),
+  ('Certified Executive Chef', 5),
+  ('Diploma in Baking and Pastry', 5),
+  ('Certified Sous Chef', 6),
+  ('Diploma in Kitchen Management', 6);
+
+INSERT INTO customer(firstName, lastName, credit, phoneNum, city, street, pCode, email, employeeID) VALUES
+  ('Emily', 'Wong', 100.00, '555-555-5555', 'Toronto', '123 Main St', 'M5R 2M6', 'emily.wong@email.com', 1),
+  ('Michael', 'Johnson', 200.00, '555-555-5556', 'Montreal', '456 Queen St', 'H2T 3T3', 'michael.johnson@email.com', 2),
+  ('Sarah', 'Williams', 300.00, '555-555-5557', 'Vancouver', '789 Hastings St', 'V3F 4O9', 'swilliams@gmail.com',3),
+  ('Patrick', 'Smith', 300.00, '555-555-5557', 'Toronto', '567 Avenue St', 'V3F 4O9', 'psmith@gmail.com',4),
+  ('Noah', 'Doe' , 300.00, '555-555-5557', 'Kingston', '876 Bathurst St', 'VJ8 2L9', 'ndoe@gmail.com',5),
+  ('Jenna', 'Williams', 300.00, '555-555-5557', 'London', '773 Princess St', 'D3F 4R5', 'jwilliams@gmail.com',6);
+
+INSERT INTO payment(amount, payDate, emailKey) VALUES 
+ (50.00, '2022-10-01 12:00:00', 'emily.wong@email.com'),
+ (100.00, '2022-10-02 12:00:00', 'michael.johnson@email.com'),
+ (150.00, '2022-10-03 12:00:00', 'swilliams@gmail.com'),
+ (200.00, '2022-10-04 12:00:00', 'psmith@gmail.com'),
+ (250.00, '2022-10-05 12:00:00', 'ndoe@gmail.com'),
+ (300.00, '2022-10-06 12:00:00', 'jwilliams@gmail.com');
+
+  
+INSERT INTO foodItem(price, name, restaurantname) VALUES 
+  (10.99, 'Spaghetti', 'The Spicy Palace'),
+  (8.99, 'Ceaser Salad', 'The Sizzling Kitchen'),
+  (15.99, 'Hamburger', 'The Tasty House'),
+  (10.99, 'Chicken Fingers', 'The Flavorful Bistro'),
+  (7.99, 'Veggie Soup', 'The Delicious Diner'),
+  (25.99, 'Steak', 'The Savory Spot');
+  
+ INSERT INTO orderPlaced (price, tip, id, timePlaced, timeDelivered, deliverer, emailKey, restaurantName, Items)VALUES 
+	(20.00, 6.00, 1, '2022-10-01 10:00:00', '2022-12-01 11:00:00', 1, 'emily.wong@email.com', 'The Spicy Palace','Spaghetti'),
+	(15.00, 7.00, 2, '2022-10-02 12:00:00', '2022-12-02 13:00:00', 2, 'michael.johnson@email.com','The Sizzling Kitchen', 'Ceaser Salad'),
+	(25.00, 9.00, 3, '2022-10-03 14:00:00', '2022-12-03 15:00:00', 3, 'swilliams@gmail.com','The Tasty House', 'Hamburger'),
+	(30.00, 3.00, 4, '2022-10-04 16:00:00', '2022-12-04 17:00:00', 4, 'psmith@gmail.com','The Flavorful Bistro', 'Chicken Fingers'),
+	(35.00, 2.00, 5, '2022-10-05 18:00:00', '2022-12-05 19:00:00', 5, 'ndoe@gmail.com','The Delicious Diner', 'Veggie Soup'),
+	(22.00, 5.00, 6, '2022-10-06 20:00:00', '2022-12-06 21:00:00', 6,'jwilliams@gmail.com','The Savory Spot', 'Steak');
+
+INSERT INTO employeeSchedule(start_time, end_time, weekday, employeeID)
+VALUES 
+  ('8:00:00', '16:00:00', 'Monday', 1),
+  ('9:00:00', '17:00:00', 'Tuesday', 2),
+  ('10:00:00', '18:00:00', 'Sunday', 3),
+  ('11:00:00', '19:00:00', 'Friday', 4),
+  ('12:00:00', '20:00:00', 'Friday', 5),
+  ('13:00:00', '21:00:00', 'Saturday', 6);

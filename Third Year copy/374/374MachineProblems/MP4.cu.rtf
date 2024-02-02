@@ -1,0 +1,185 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2639
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red255\green255\blue255;\red0\green0\blue0;\red88\green137\blue66;
+\red204\green204\blue202;\red73\green140\blue207;\red193\green125\blue99;\red167\green197\blue150;}
+{\*\expandedcolortbl;;\cssrgb\c100000\c100000\c99985;\cssrgb\c0\c1\c1;\cssrgb\c41346\c59743\c32702;
+\cssrgb\c83591\c83590\c83069;\cssrgb\c34777\c62428\c84960;\cssrgb\c80749\c56691\c46382;\cssrgb\c71112\c80895\c65487;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs22 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 // Evan Cohen 20214967 \cf2 \cb3 \strokec5 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec6 #include \cf2 \cb3 \strokec7 <stdio.h>\cf2 \cb3 \strokec5 \
+\cf2 \cb3 \strokec6 #include \cf2 \cb3 \strokec7 <stdlib.h>\cf2 \cb3 \strokec5 \
+\cf2 \cb3 \strokec6 #include \cf2 \cb3 \strokec7 <math.h>\cf2 \cb3 \strokec5 \
+\cf2 \cb3 \strokec6 #include \cf2 \cb3 \strokec7 <cuda_runtime.h>\cf2 \cb3 \strokec5 \
+\cf2 \cb3 \strokec6 #include \cf2 \cb3 \strokec7 <time.h>\cf2 \cb3 \strokec5 \
+\
+\cf2 \cb3 \strokec6 #define TOLERANCE \cf2 \cb3 \strokec8 1e-6\cf2 \cb3 \strokec5 \
+\
+__global__ \cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  matrixMultiplication(\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *P, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *M, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *N, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  size, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  tileSize) \{\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec4 \uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 // Declare shared memory arrays for M and N matrices\cf2 \cb3 \strokec5 \
+      __shared__ \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  MSize[\cf2 \cb3 \strokec8 3\cf2 \cb3 \strokec5 ][\cf2 \cb3 \strokec8 32\cf2 \cb3 \strokec5 ];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 __shared__ \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  NSize[\cf2 \cb3 \strokec8 32\cf2 \cb3 \strokec5 ][\cf2 \cb3 \strokec8 32\cf2 \cb3 \strokec5 ];\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  pnum = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\
+\cf2 \cb3 \strokec4 // Determine block and thread indices\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  blockX = blockIdx.x;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  blockY = blockIdx.y;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  threadX = threadIdx.x;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  threadY = threadIdx.y;\
+\
+\cf2 \cb3 \strokec4 // Determine row and column indices based on block and thread indices\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  row = blockY * tileSize + threadY;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  col = blockX * tileSize + threadX;\
+\
+\cf2 \cb3 \strokec4 //Load M and N tiles\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  i = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; i < (size - \cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 ) / tileSize + \cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 ; i++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 if\cf2 \cb3 \strokec5  (row < size && i * tileSize + threadX < size) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 MSize[threadY][threadX] = M[(tileSize* i) + threadX + (row *size)];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 else\cf2 \cb3 \strokec5  MSize[threadY][threadX] = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 if\cf2 \cb3 \strokec5  (col < size && i * tileSize + threadX < size) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 NSize[threadY][threadX] = N[(tileSize* i + threadX)*size + row];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 else\cf2 \cb3 \strokec5  NSize[threadY][threadX] = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 __syncthreads();\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  j = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; j < tileSize; j++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 pnum += MSize[threadY][j] * NSize[j][threadX];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 __syncthreads();\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 if\cf2 \cb3 \strokec5  (row < size && col < size) P[row*size + col] = pnum;\
+\}\
+\
+\
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  tiledMultiplication(\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 P, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 M, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 N, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  size, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  tileSize) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *deviceP, *deviceM, *deviceN;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 size_t\cf2 \cb3 \strokec5  width = size *size * \cf2 \cb3 \strokec6 sizeof\cf2 \cb3 \strokec5 (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5 );\
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec4 // Allocate memory on device for matrices\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMalloc((\cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  **)&deviceP, width);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMalloc((\cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  **)&deviceM, width);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMalloc((\cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  **)&deviceN, width);\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 dim3 dimGrid((size - \cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 ) / tileSize + \cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 , (size - \cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 ) / tileSize+\cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 );\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 dim3 dimBlock(tileSize,tileSize,\cf2 \cb3 \strokec8 1\cf2 \cb3 \strokec5 );\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMemcpy(deviceM, M, width, cudaMemcpyHostToDevice);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMemcpy(deviceN, N, width, cudaMemcpyHostToDevice);\
+\
+\cf2 \cb3 \strokec4 // Record start time of kernel execution\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEvent_t start, stop;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventCreate(&start);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventCreate(&stop);\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventRecord(start, \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 );\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 matrixMultiplication << <dimGrid, dimBlock >> > (deviceP, deviceM, deviceN, size, tileSize);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventRecord(stop, \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 );\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventSynchronize(stop);\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  timePassed;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaEventElapsedTime(&timePassed, start, stop);\
+\
+\cf2 \cb3 \strokec4 //output time\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 printf(\cf2 \cb3 \strokec7 "Multiplication with tile size: %d   "\cf2 \cb3 \strokec5 , tileSize);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 printf(\cf2 \cb3 \strokec7 "Time Passed: %f\\n"\cf2 \cb3 \strokec5 , timePassed);\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaMemcpy(P, deviceP, width, cudaMemcpyDeviceToHost);\
+\
+\cf2 \cb3 \strokec4 // Free memory on device\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaFree(deviceP);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaFree(deviceM);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 cudaFree(deviceN);\
+\
+\}\
+\
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec6 void\cf2 \cb3 \strokec5  CPUMultiplication(\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 P, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 M, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 *\cf2 \cb3 \strokec5 N, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  size) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  pnum = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  j = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  i = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; i < size; i++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  j = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; j < size; j++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  pnum = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  x = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; x < size; x++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 pnum += M[i * size + x] * N[x*size + j];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 P[i*size + j] = pnum;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\}\
+\
+\cf2 \cb3 \strokec6 bool\cf2 \cb3 \strokec5  testResults(\cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float*\cf2 \cb3 \strokec5  P, \cf2 \cb3 \strokec6 const\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 float*\cf2 \cb3 \strokec5  P_cpu, \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  width) \{\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  i = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; i < width *width; i++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 if\cf2 \cb3 \strokec5  (fabs(P[i] - P_cpu[i])>\cf2 \cb3 \strokec6 TOLERANCE\cf2 \cb3 \strokec5 ) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 return\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 false\cf2 \cb3 \strokec5 ;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 return\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec6 true\cf2 \cb3 \strokec5 ;\
+\}\
+\
+\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  main() \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  sizeVals[] = \{ \cf2 \cb3 \strokec8 125\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 250\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 500\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 1000\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 2000\cf2 \cb3 \strokec5  \};\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  tileSizeVals[] = \{ \cf2 \cb3 \strokec8 2\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 5\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 10\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 20\cf2 \cb3 \strokec5 ,\cf2 \cb3 \strokec8 25\cf2 \cb3 \strokec5 \};\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  i = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; i < \cf2 \cb3 \strokec8 5\cf2 \cb3 \strokec5 ; i++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  width = sizeVals[i];\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 size_t\cf2 \cb3 \strokec5  size = width *width * \cf2 \cb3 \strokec6 sizeof\cf2 \cb3 \strokec5 (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5 );\
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec4 // Allocate memory on host\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *P = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *)malloc(size);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *P_cpu = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *)malloc(size);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *M = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *)malloc(size);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *N = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5  *)malloc(size);\
+\
+\cf2 \cb3 \strokec4 // Initialize matrices\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  j = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; j < width*width; j++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 M[j] = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5 )rand()* \cf2 \cb3 \strokec6 RAND_MAX\cf2 \cb3 \strokec5 ;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 N[j] = (\cf2 \cb3 \strokec6 float\cf2 \cb3 \strokec5 )jrand()*\cf2 \cb3 \strokec6 RAND_MAX\cf2 \cb3 \strokec5 ;\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 printf(\cf2 \cb3 \strokec7 "Matrix Dimensions: %d by %d\\n"\cf2 \cb3 \strokec5 , width, width);\
+\
+\cf2 \cb3 \strokec4 // Run tests\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 for\cf2 \cb3 \strokec5  (\cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  a = \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ; a < \cf2 \cb3 \strokec8 5\cf2 \cb3 \strokec5 ; a++) \{\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 int\cf2 \cb3 \strokec5  tileSize = tileSizeVals[a];\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 tiledMultiplication(P, M, N, width, tileSize);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 CPUMultiplication(P_cpu, M, N, width);\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 printf(\cf2 \cb3 \strokec7 "Test %s\\n"\cf2 \cb3 \strokec5 , testResults(P, P_cpu, width) ? \cf2 \cb3 \strokec7 "PASSED"\cf2 \cb3 \strokec5  : \cf2 \cb3 \strokec7 "FAILED"\cf2 \cb3 \strokec5 );\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \
+\cf2 \cb3 \strokec4 // Free memory\cf2 \cb3 \strokec5 \
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 free(P);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 free(P_cpu);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 free(M);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \u8194 free(N);\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \}\
+\
+\uc0\u8194 \u8194 \u8194 \u8194 \u8194 \u8194 \cf2 \cb3 \strokec6 return\cf2 \cb3 \strokec5  \cf2 \cb3 \strokec8 0\cf2 \cb3 \strokec5 ;\
+\}\
+\
+}

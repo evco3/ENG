@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Delicious Restaurant</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+		}
+		header {
+			background-color: #3e2609;
+			padding: 10px;
+			text-align: center;
+		}
+		h1 {
+			margin: 0;
+			font-size: 36px;
+			color: #fff;
+			text-shadow: 2px 2px #000;
+		}
+		nav {
+			background-color: #333;
+			color: #fff;
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+			padding: 10px;
+		}
+		nav a {
+			color: #fff;
+			text-decoration: none;
+			font-size: 20px;
+		}
+		nav a:hover {
+			color: #09ceff;
+		}
+		section {
+			display: flex;
+			flex-wrap: wrap;
+			padding: 20px;
+		}
+		article {
+			flex-basis: 400px;
+			margin: 20px;
+			background-color: #fff;
+			box-shadow: 2px 2px 5px #ccc;
+			border-radius: 5px;
+			overflow: hidden;
+		}
+		article img {
+			width: 100%;
+			height: 200px;
+			object-fit: cover;
+		}
+		article h2 {
+			margin: 10px;
+			font-size: 24px;
+			color: #333;
+		}
+		article p {
+			margin: 10px;
+			font-size: 18px;
+			color: #777;
+			line-height: 1.5;
+		}
+		article button {
+			display: block;
+			margin: 10px auto;
+			padding: 10px 20px;
+			background-color: #f2b632;
+			color: #fff;
+			border: none;
+			border-radius: 20px;
+			font-size: 18px;
+			cursor: pointer;
+		}
+		article button:hover {
+			background-color: #333;
+		}
+		footer {
+			background-color: #333;
+			color: #fff;
+			text-align: center;
+			padding: 10px;
+		}
+		footer p {
+			margin: 0;
+			font-size: 16px;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<h1>Delicious Restaurant</h1>
+	</header>
+	<nav>
+		<a href="#">Home</a>
+		<a href="empSchedule.php">Schedule</a>
+		<a href="Orders.php">Orders</a>
+		<a href="addCustomer.php">Add Customer</a>
+		<a href="orderSum.php">Order Summary</a>
+	</nav>
+	<section>
+		<article>
+			<img src="pastaPhoto.jpeg" alt="Food Image">
+			<h2>Special of the Day</h2>
+			<p>Indulge in our amazing linguine pasta served with juicy prawns and a creamy garlic sauce.</p>
+			<button>Order Now</button>
+		</article>
+		<article>
+			<img src="stock-vector-city-map-town-streets-with-park-and-river-downtown-gps-navigation-plan-abstract-transportation-1920347111.jpeg" alt="map Image">
+			<h2>Find us</h2>
+			<p>Get directions to our closest location</p>
+			<button>Directions</button>
+		</article>
+		<article>
+			<img src="oldPhoto.jpeg" alt="old Image">
+			<h2>Our Story</h2>
+			<p>This delicous restaurant was made by one computer engineering student in 2023.....</p>
+			<button>About us</button>
+		</article>
+	</section>

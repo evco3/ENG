@@ -1,0 +1,6 @@
+https://www.geeksforgeeks.org/cifar-10-image-classification-in-tensorflow/
+
+https://medium.com/@juan1015/image-classification-on-cifar10-dataset-a-transfer-learning-implementation-f071e554005
+
+
+https://github.com/kuangliu/pytorch-cifar/blob/master/models/resnet.py
